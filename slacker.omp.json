@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "blocks": [
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "darkGray",
+          "properties": {
+            "time_format": "15:04:05"
+          },
+          "style": "plain",
+          "template": "[{{ .CurrentDate | date .Format }}]",
+          "type": "time"
+        },
+        {
+          "type": "session",
+          "foreground": "green",
+          "style": "plain",
+          "template": " {{ if eq .Env.IsDemo \"1\" }}.Env.DemoUser{{ else }}{{ if .Root }}<lightRed>{{ else }}<green>{{ end }}{{ if .SSHSession }}\uF817 {{ end }}{{ .UserName }}{{ if .Env.USERDNSDOMAIN }}@{{ .Env.USERDNSDOMAIN | lower }}{{ end }}</>{{ end }}"
+        },
+        {
+          "type": "text",
+          "style": "plain",
+          "template": "{{if .Env.BW_STATUS }} {{ if eq .Env.BW_STATUS \"unlocked\" }}\uF83F{{ else }}<darkGray>\uF83D</>{{ end }}{{ end }}"
+        },
+        {
+          "foreground": "lightCyan",
+          "properties": {
+            "style": "full"
+          },
+          "style": "plain",
+          "template": " {{ .Path }}",
+          "type": "path"
+        },
+        {
+          "style": "plain",
+          "template": " <darkGray>on</> <white>git:</><cyan>{{ .HEAD }}</>{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if .Staging.Changed }} <yellow>\uEA63 {{ .Staging.String }}</>{{ end }}{{ if gt .StashCount 0 }} <red>\uf692 {{ .StashCount }}</>{{ end }}",
+          "type": "git",
+          "properties": {
+            "fetch_status": true
+          }
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "#CCC",
+          "style": "plain",
+          "template": "{{.Name}}> ",
+          "type": "shell",
+          "properties": {
+            "mapped_shell_names": {
+              "pwsh": "PS"
+            }
+          }
+        }
+      ],
+      "type": "prompt"
+    }
+  ],
+  "console_title_template": "{{if .Root}}(admin) {{end}}{{.Shell}} {{.PWD}}",
+  "version": 2
+}
