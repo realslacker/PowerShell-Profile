@@ -18,12 +18,12 @@
           "type": "session",
           "foreground": "green",
           "style": "plain",
-          "template": " {{ if eq .Env.IsDemo \"1\" }}.Env.DemoUser{{ else }}{{ if .Root }}<lightRed>{{ else }}<green>{{ end }}{{ if .SSHSession }}\uF817 {{ end }}{{ .UserName }}{{ if .Env.USERDNSDOMAIN }}@{{ .Env.USERDNSDOMAIN | lower }}{{ end }}</>{{ end }}"
+          "template": " {{ if eq .Env.IsDemo \"1\" }}{{ .Env.DemoUser }}{{ else }}{{ if .Root }}<lightRed>{{ else }}<green>{{ end }}{{ if .SSHSession }}\uF817 {{ end }}{{ .UserName }}{{ if .Env.USERDNSDOMAIN }}@{{ .Env.USERDNSDOMAIN | lower }}{{ end }}</>{{ end }}"
         },
         {
           "type": "text",
           "style": "plain",
-          "template": "{{if .Env.BW_STATUS }} {{ if eq .Env.BW_STATUS \"unlocked\" }}\uF83F{{ else }}<darkGray>\uF83D</>{{ end }}{{ end }}"
+          "template": "{{if .Env.BW_STATUS }} {{ if eq .Env.BW_STATUS \"unlocked\" }}<#3B8AB7>\uf132</>{{ else }}<darkGray>\uf132</>{{ end }}{{ end }}"
         },
         {
           "foreground": "lightCyan",
