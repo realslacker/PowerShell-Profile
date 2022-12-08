@@ -56,7 +56,8 @@
           "type": "shell",
           "properties": {
             "mapped_shell_names": {
-              "pwsh": "PS"
+              "pwsh": "PS",
+              "powershell": "PS"
             }
           }
         }
