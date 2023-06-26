@@ -65,6 +65,6 @@
       "type": "prompt"
     }
   ],
-  "console_title_template": "{{if .Root}}(admin) {{end}}{{.Shell}} {{.PWD}}",
+  "console_title_template": "{{ if .Root }}(admin) {{ end }}{{ if .Env.MyConsoleTitle }}{{- .Env.MyConsoleTitle -}}{{ else }}{{ .Shell }}{{ end }} {{ .PWD }}",
   "version": 2
 }
