@@ -35,6 +35,14 @@ try {
     oh-my-posh init pwsh --config "$PSScriptRoot\slacker.omp.json" | Invoke-Expression
     function Set-PoshEnv {
         $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path ~\.config\BitwardenWrapper\.unlocked)]
+        if ( ${Global:DefaultVIServers}?.Name.Count ) {
+            $env:ConnectedVIServers = 'true'
+            for ( $i = 0; $i -lt 10; $i ++ ) {
+                New-Item -Path "Env:\ConnectedVIServer$i" -Value $Global:DefaultVIServers[$i].{Name}?.Split('.',2)?[0]?.ToUpper() -Force > $null
+            }
+        } else {
+            $env:ConnectedVIServers = 'false'
+        }
     }
     New-Alias -Name Set-PoshContext -Value Set-PoshEnv
 } catch {}
@@ -43,7 +51,10 @@ Set-PSReadLineOption -Colors @{
     Parameter        = $PSStyle.Foreground.BrightCyan
     Operator         = $PSStyle.Foreground.BrightRed
     InlinePrediction = $PSStyle.Foreground.BrightBlack
-} -HistorySaveStyle SaveIncrementally -HistoryNoDuplicates -PredictionSource History -BellStyle Visual
+} -HistorySaveStyle SaveIncrementally -HistoryNoDuplicates -PredictionSource HistoryAndPlugin -BellStyle Visual
+
+Import-Module CompletionPredictor -ErrorAction SilentlyContinue
+Import-Module DirectoryPredictor -ErrorAction SilentlyContinue
 
 $PSStyle.Formatting.Warning = $PSStyle.Blink + $PSStyle.Foreground.BrightYellow
 $PSStyle.Formatting.Verbose = $PSStyle.Foreground.Cyan

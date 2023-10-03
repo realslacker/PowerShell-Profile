@@ -1,3 +1,51 @@
+function Connect-OpenVPNProfile {
+    param(
+        [Parameter(Mandatory, Position=1)]
+        [ArgumentCompleter({
+            param($i1,$i2,$WordToComplete)
+            Get-ChildItem -Path '~\OpenVPN' -File -Filter '*.ovpn' -Recurse | Select-Object -ExpandProperty Name | Where-Object { $_ -like "$($WordToComplete.Trim('''"'))*" } | ForEach-Object { "'$_'" }
+        })]
+        [string]
+        $Profile
+    )
+    & "${env:ProgramFiles}\OpenVPN\bin\openvpn-gui.exe" --command connect $Profile
+}
+
+function Disconnect-OpenVPNProfile {
+    param(
+        [Parameter(ParameterSetName='Single', Mandatory, Position=1)]
+        [ArgumentCompleter({
+            param($i1,$i2,$WordToComplete)
+            Get-ChildItem -Path '~\OpenVPN' -File -Filter '*.ovpn' -Recurse | Select-Object -ExpandProperty Name | Where-Object { $_ -like "$($WordToComplete.Trim('''"'))*" } | ForEach-Object { "'$_'" }
+        })]
+        [string]
+        $Profile,
+
+        [Parameter(ParameterSetName='All', Mandatory)]
+        [switch]
+        $All
+    )
+    if ( $All ) {
+        & "${env:ProgramFiles}\OpenVPN\bin\openvpn-gui.exe" --command disconnect_all
+    } else {
+        & "${env:ProgramFiles}\OpenVPN\bin\openvpn-gui.exe" --command disconnect $Profile
+    }
+}
+
+function Restart-OpenVPNProfile {
+    param(
+        [Parameter(Mandatory, Position=1)]
+        [ArgumentCompleter({
+            param($i1,$i2,$WordToComplete)
+            Get-ChildItem -Path '~\OpenVPN' -File -Filter '*.ovpn' -Recurse | Select-Object -ExpandProperty Name | Where-Object { $_ -like "$($WordToComplete.Trim('''"'))*" } | ForEach-Object { "'$_'" }
+        })]
+        [string]
+        $Profile
+    )
+    & "${env:ProgramFiles}\OpenVPN\bin\openvpn-gui.exe" --command reconnect $Profile
+}
+
+
 function Get-PSUAPIToken {
     param(
         
@@ -62,6 +110,58 @@ Register-ArgumentCompleter -ParameterName Server -ScriptBlock {
             WordToComplete = $WordToComplete.Replace('?', '_').Replace('*', '%').TrimEnd('%') + '%'
         } | Select-Object -Expand Option
     }
+}
+
+function Wait-Thing {
+
+    [CmdletBinding( DefaultParameterSetName = 'Default' )]
+    param(
+        
+        [Parameter( Position = 1 )]
+        [scriptblock]
+        $Thing = {$true},
+
+        [Parameter( ParameterSetName = 'Seconds' )]
+        [ValidateRange(1,[uint32]::MaxValue)]
+        [uint32]
+        $RetrySeconds,
+
+        [Parameter( ParameterSetName = 'Milliseconds' )]
+        [ValidateRange(1,[uint32]::MaxValue)]
+        [uint32]
+        $RetryMilliseconds,
+
+        [switch]
+        $PlayMusic
+
+    )
+
+    # default is 30 seconds
+    $WaitTimespan = [timespan]::FromSeconds(30)
+
+    if ( $RetryMilliseconds ) {
+        $WaitTimespan = [timespan]::FromMilliseconds($RetryMilliseconds)
+    }
+
+    if ( $RetrySeconds ) { 
+        $WaitTimespan = [timespan]::FromSeconds($RetrySeconds)
+    }
+
+    Write-Verbose ( 'Waiting {0} milliseconds between thing checks.' -f $WaitTimespan.TotalMilliseconds )
+
+    while ( $( $ThingResult = $Thing.Invoke() | Select-Object -First 1; $ThingResult -ne $true ) ) {
+        Write-Verbose 'Waiting on thing to finish...'
+        Start-Sleep -Milliseconds $WaitTimespan.TotalMilliseconds
+    }
+
+    if ( $PlayMusic ) {
+        if ( $Sound = Get-Item -Path "$PSScriptRoot\ThingDoneSound.wav" -ErrorAction SilentlyContinue ) {
+            [System.Media.SoundPlayer]::new($Sound.FullName).Play()
+        } else {
+            Write-Warning ( 'Missing Sound! Please create ''{0}''.' -f "$PSScriptRoot\ThingDoneSound.wav" )
+        }
+    }
+
 }
 
 New-Alias -Name npp -Value 'C:\Program Files\Notepad++\notepad++.exe'
