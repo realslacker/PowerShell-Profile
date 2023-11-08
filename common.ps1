@@ -95,8 +95,8 @@ Register-ArgumentCompleter -ParameterName ComputerName -ScriptBlock {
     if ( $CommandName -eq 'Connect-VIServer' ) {
         'ncsa.vcenter.methode.global', 'emea.vcenter.methode.global', 'apac.vcenter.methode.global', 'pcp-vcenter1.procoplast.be' | Where-Object { $_ -match "${WordToComplete}*" }
     } else {
-        Invoke-BIDatabaseQuery -Query 'SELECT LOWER(`DNSHostName`) AS `Option` FROM `ad_Objects` WHERE `ObjectClass`="Computer" AND `Deleted`=0 AND `OperatingSystem` LIKE "%Server%" AND `DNSHostName` IS NOT NULL AND `DNSHostName` LIKE @WordToComplete' -Parameters @{
-            WordToComplete = $WordToComplete.Replace('?', '_').Replace('*', '%').TrimEnd('%') + '%'
+        Invoke-BIDatabaseQuery -Query 'SELECT LOWER(`DNSHostName`) AS `Option` FROM `ad_Objects` WHERE `ObjectClass`="Computer" AND `Deleted`=0 AND `OperatingSystem` LIKE "%Server%" AND `DNSHostName` IS NOT NULL AND `DNSHostName` LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @WordToComplete)),"?","_"),"*","%")),"%")' -Parameters @{
+            WordToComplete = $WordToComplete
         } | Select-Object -Expand Option
     }
 }
@@ -106,10 +106,18 @@ Register-ArgumentCompleter -ParameterName Server -ScriptBlock {
     if ( $CommandName -eq 'Connect-VIServer' ) {
         'ncsa.vcenter.methode.global', 'emea.vcenter.methode.global', 'apac.vcenter.methode.global', 'pcp-vcenter1.procoplast.be' | Where-Object { $_ -match "${WordToComplete}*" }
     } else {
-        Invoke-BIDatabaseQuery -Query 'SELECT LOWER(`DNSHostName`) AS `Option` FROM `ad_Objects` WHERE `ObjectClass`="Computer" AND `Deleted`=0 AND `OperatingSystem` LIKE "%Server%" AND `DNSHostName` IS NOT NULL AND `DNSHostName` LIKE @WordToComplete' -Parameters @{
-            WordToComplete = $WordToComplete.Replace('?', '_').Replace('*', '%').TrimEnd('%') + '%'
+        Invoke-BIDatabaseQuery -Query 'SELECT LOWER(`DNSHostName`) AS `Option` FROM `ad_Objects` WHERE `ObjectClass`="Computer" AND `Deleted`=0 AND `OperatingSystem` LIKE "%Server%" AND `DNSHostName` IS NOT NULL AND `DNSHostName` LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @WordToComplete)),"?","_"),"*","%")),"%")' -Parameters @{
+            WordToComplete = $WordToComplete
         } | Select-Object -Expand Option
     }
+}
+
+Register-ArgumentCompleter -ParameterName Identity -ScriptBlock {
+    param( $CommandName, $ParameterName, $WordToComplete, $CommandAst, $Parameters )
+    $Parameters.CommandName = $CommandName
+    $Query = 'SELECT TRIM(TRAILING "$" FROM SAMAccountName) AS SAMAccountName FROM infra.ad_Objects JOIN infra.ad_DomainControllers ON ad_DomainControllers.Domain = ad_Objects.Domain WHERE Deleted = 0 AND SAMAccountName IS NOT NULL AND (((@CommandName LIKE "%ADUser%" OR @CommandName LIKE "%ADAccount%") AND ObjectClass = "User") OR ((@CommandName LIKE "%ADComputer%" OR @CommandName LIKE "%ADAccount%") AND ObjectClass = "Computer") OR (@CommandName LIKE "%ADGroup%" AND ObjectClass = "Group")) AND SAMAccountName LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @Identity)),"?","_"),"*","%")),"%") AND (@Server IS NULL OR @Server = "" OR HostName = @Server) GROUP BY SAMAccountName'
+    [object[]] $Results = Invoke-BIDatabaseQuery -Query $Query -Parameters $Parameters
+    $Results.SAMAccountName | ForEach-Object { if ( $_.IndexOf(' ') -ne -1 ) { "'$_'" } else { $_ } }
 }
 
 function Wait-Thing {
