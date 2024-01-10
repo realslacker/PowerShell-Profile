@@ -47,28 +47,45 @@ function Restart-OpenVPNProfile {
 
 
 function Get-PSUAPIToken {
+    [CmdletBinding( DefaultParameterSetName='Object' )]
+    [OutputType( [object], ParameterSetName='Object' )]
+    [OutputType( [securestring], ParameterSetName='Token' )]
+    [OutputType( [hashtable], ParameterSetName='AuthHeader' )]
     param(
         
+        [Parameter( Position=0 )]
         [SupportsWildcards()]
         [string]
         $Name = '*',
 
+        [Parameter( Mandatory, ParameterSetName='Token' )]
+        [switch]
+        $Token,
+
+        [Parameter( Mandatory, ParameterSetName='AuthHeader' )]
         [switch]
         $AuthorizationHeader
 
     )
     if ( Test-Path "$env:APPDATA\code\User\settings.json" ) {
 
-        $Tokens = (Get-Content "$env:APPDATA\code\User\settings.json" | ConvertFrom-Json).'powerShellUniversal.connections' | Where-Object Name -like $Name
+        [object[]] $Tokens = (Get-Content "$env:APPDATA\code\User\settings.json" | ConvertFrom-Json).'powerShellUniversal.connections' | Where-Object Name -like $Name
 
-        if ( $AuthorizationHeader ) {
-            if ( $Tokens.Count -eq 1 ) {
-                @{ authorization = "bearer $($Tokens.appToken)" }
-            } else {
-                Write-Warning ( 'There were {0} tokens returned. Result must contain a single token.' -f $Tokens.Count )
+        if ( $PSCmdlet.ParameterSetName -ne 'Object' -and $Tokens.Count -gt 1 ) {
+            Write-Warning ( 'There were {0} tokens returned. Result must contain a single token.' -f $Tokens.Count )
+            return
+        }
+
+        switch ( $PSCmdlet.ParameterSetName ) {
+            'Token' {
+                return ConvertTo-SecureString -String $Tokens.appToken -AsPlainText -Force
             }
-        } else {
-            $Tokens
+            'AuthHeader' {
+                return @{ authorization = "bearer $($Tokens.appToken)" }
+            }
+            default {
+                return $Tokens
+            }
         }
     
     }
@@ -90,6 +107,7 @@ function Clear-ConsoleTitle {
 # VMware Argument Completers
 Register-ArgumentCompleter -CommandName New-VM, Set-VM -ParameterName GuestId -ScriptBlock { param( $dc, $dc2, $WordToComplete ) [VMware.Vim.VirtualMachineGuestOsIdentifier].GetEnumNames().Where({ $_ -like "$WordToComplete*" }) }
 
+# AD Argument Completer
 Register-ArgumentCompleter -ParameterName ComputerName -ScriptBlock {
     param( $CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters )
     if ( $CommandName -eq 'Connect-VIServer' ) {
@@ -118,6 +136,14 @@ Register-ArgumentCompleter -ParameterName Identity -ScriptBlock {
     $Query = 'SELECT TRIM(TRAILING "$" FROM SAMAccountName) AS SAMAccountName FROM infra.ad_Objects JOIN infra.ad_DomainControllers ON ad_DomainControllers.Domain = ad_Objects.Domain WHERE Deleted = 0 AND SAMAccountName IS NOT NULL AND (((@CommandName LIKE "%ADUser%" OR @CommandName LIKE "%ADAccount%") AND ObjectClass = "User") OR ((@CommandName LIKE "%ADComputer%" OR @CommandName LIKE "%ADAccount%") AND ObjectClass = "Computer") OR (@CommandName LIKE "%ADGroup%" AND ObjectClass = "Group")) AND SAMAccountName LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @Identity)),"?","_"),"*","%")),"%") AND (@Server IS NULL OR @Server = "" OR HostName = @Server) GROUP BY SAMAccountName'
     [object[]] $Results = Invoke-BIDatabaseQuery -Query $Query -Parameters $Parameters
     $Results.SAMAccountName | ForEach-Object { if ( $_.IndexOf(' ') -ne -1 ) { "'$_'" } else { $_ } }
+}
+
+Register-ArgumentCompleter -ParameterName SearchBase -ScriptBlock {
+    param( $CommandName, $ParameterName, $WordToComplete, $CommandAst, $Parameters )
+    $Parameters.CommandName = $CommandName
+    $Query = 'SELECT DistinguishedName FROM infra.ad_Objects JOIN infra.ad_DomainControllers ON ad_DomainControllers.Domain = ad_Objects.Domain WHERE ObjectClass = "OrganizationalUnit" AND Deleted = 0 AND DistinguishedName IS NOT NULL AND DistinguishedName LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @SearchBase)),"?","_"),"*","%")),"%") AND ( IFNULL(@Server, "") = "" OR HostName = @Server ) GROUP BY DistinguishedName ORDER BY DistinguishedName'
+    [object[]] $Results = Invoke-BIDatabaseQuery -Query $Query -Parameters $Parameters
+    $Results.DistinguishedName | Where-Object { -not [string]::IsNullOrEmpty($_) } | ForEach-Object { "'$_'" }
 }
 
 function Wait-Thing {
@@ -157,7 +183,7 @@ function Wait-Thing {
 
     Write-Verbose ( 'Waiting {0} milliseconds between thing checks.' -f $WaitTimespan.TotalMilliseconds )
 
-    while ( $( $ThingResult = $Thing.Invoke() | Select-Object -First 1; $ThingResult -ne $true ) ) {
+    while ( $( $ThingResult = $Thing.Invoke() -as [bool]; $ThingResult -ne $true ) ) {
         Write-Verbose 'Waiting on thing to finish...'
         Start-Sleep -Milliseconds $WaitTimespan.TotalMilliseconds
     }
