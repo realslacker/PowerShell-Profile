@@ -63,7 +63,7 @@
           "powerline_symbol": "\uE0B0",
           "foreground": "#ffffff",
           "background": "#666",
-          "template": "{{ if .Env.ConnectedVIServer3 }} ... {{ end }}"
+          "template": "{{ if .Env.ConnectedVIServer3 }} {{ .Env.ConnectedVIServer3 }} {{ end }}"
         },
         {
           "foreground": "lightCyan",

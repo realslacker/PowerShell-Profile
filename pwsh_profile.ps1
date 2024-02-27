@@ -38,10 +38,15 @@ try {
         if ( ${Global:DefaultVIServers}?.Name.Count ) {
             $env:ConnectedVIServers = 'true'
             for ( $i = 0; $i -lt 10; $i ++ ) {
-                New-Item -Path "Env:\ConnectedVIServer$i" -Value $Global:DefaultVIServers[$i].{Name}?.Split('.',2)?[0]?.ToUpper() -Force > $null
+                if ( $Global:DefaultVIServers[$i] ) {
+                    New-Item -Path "Env:\ConnectedVIServer$i" -Value $Global:DefaultVIServers[$i]?.{Name}?.Split('.',2)?[0]?.ToUpper() -Force > $null
+                }
             }
         } else {
             $env:ConnectedVIServers = 'false'
+            for ( $i = 0; $i -lt 10; $i ++ ) {
+                Remove-Item -Path "Env:\ConnectedVIServer$i" -ErrorAction SilentlyContinue > $null
+            }
         }
     }
     New-Alias -Name Set-PoshContext -Value Set-PoshEnv

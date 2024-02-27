@@ -146,6 +146,14 @@ Register-ArgumentCompleter -ParameterName SearchBase -ScriptBlock {
     $Results.DistinguishedName | Where-Object { -not [string]::IsNullOrEmpty($_) } | ForEach-Object { "'$_'" }
 }
 
+Register-ArgumentCompleter -ParameterName TargetPath -ScriptBlock {
+    param( $CommandName, $ParameterName, $WordToComplete, $CommandAst, $Parameters )
+    $Parameters.CommandName = $CommandName
+    $Query = 'SELECT DistinguishedName FROM infra.ad_Objects JOIN infra.ad_DomainControllers ON ad_DomainControllers.Domain = ad_Objects.Domain WHERE ObjectClass = "OrganizationalUnit" AND Deleted = 0 AND DistinguishedName IS NOT NULL AND DistinguishedName LIKE CONCAT(TRIM(TRAILING "%" FROM REPLACE(REPLACE(TRIM(''"'' FROM TRIM("''" FROM @SearchBase)),"?","_"),"*","%")),"%") AND ( IFNULL(@Server, "") = "" OR HostName = @Server ) GROUP BY DistinguishedName ORDER BY DistinguishedName'
+    [object[]] $Results = Invoke-BIDatabaseQuery -Query $Query -Parameters $Parameters
+    $Results.DistinguishedName | Where-Object { -not [string]::IsNullOrEmpty($_) } | ForEach-Object { "'$_'" }
+}
+
 function Wait-Thing {
 
     [CmdletBinding( DefaultParameterSetName = 'Default' )]
