@@ -32,9 +32,9 @@ function Switch-DemoMode {
 }
 
 try {
-    oh-my-posh init pwsh --config "$PSScriptRoot\slacker.omp.json" | Invoke-Expression
+    oh-my-posh init pwsh --config (Join-Path $PSScriptRoot 'slacker.omp.json') | Invoke-Expression
     function Set-PoshEnv {
-        $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path ~\.config\BitwardenWrapper\.unlocked)]
+        $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path (Join-Path $env:BITWARDENCLI_APPDATA_DIR '.unlocked'))]
         if ( ${Global:DefaultVIServers}?.Name.Count ) {
             $env:ConnectedVIServers = 'true'
             for ( $i = 0; $i -lt 10; $i ++ ) {
@@ -45,7 +45,9 @@ try {
         } else {
             $env:ConnectedVIServers = 'false'
             for ( $i = 0; $i -lt 10; $i ++ ) {
-                Remove-Item -Path "Env:\ConnectedVIServer$i" -ErrorAction SilentlyContinue > $null
+                if ( Test-Path "Env:\ConnectedVIServer$i" ) {
+                    Remove-Item -Path "Env:\ConnectedVIServer$i" -ErrorAction SilentlyContinue > $null
+                }
             }
         }
     }
