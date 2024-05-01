@@ -43,7 +43,7 @@ function Switch-DemoMode {
 try {
     oh-my-posh init powershell --config "$PSScriptRoot\slacker.omp.json" | Invoke-Expression
     function Set-PoshEnv {
-        $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path ~\.config\BitwardenWrapper\.unlocked)]
+        $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path (Join-Path $env:BITWARDENCLI_APPDATA_DIR '.unlocked'))]
     }
     New-Alias -Name Set-PoshContext -Value Set-PoshEnv
 } catch {}
