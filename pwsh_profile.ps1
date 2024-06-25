@@ -32,6 +32,15 @@ function Switch-DemoMode {
 }
 
 try {
+	if ( -not( Get-Command oh-my-posh -ErrorAction SilentlyContinue ) ) {
+		Write-Host 'Trying to install Oh-My-Posh...'
+		Invoke-WebRequest -Uri 'https://ohmyposh.dev/install.ps1' -OutFile "$env:TEMP\Install-OhMyPosh.ps1"
+		Unblock-File "$env:TEMP\Install-OhMyPosh.ps1"
+		& "$env:TEMP\Install-OhMyPosh.ps1"
+		if ( -not( $env:Path.Split(';') -like '*oh-my-posh*' ) ) {
+			$env:PATH += ";$env:USERPROFILE\AppData\Local\Programs\oh-my-posh\bin"
+		}
+	}
     oh-my-posh init pwsh --config (Join-Path $PSScriptRoot 'slacker.omp.json') | Invoke-Expression
     function Set-PoshEnv {
         $env:BW_STATUS = ('locked', 'unlocked')[$(Test-Path (Join-Path $env:BITWARDENCLI_APPDATA_DIR '.unlocked'))]
